@@ -37,8 +37,8 @@ function formatDnrRules(dbRules) {
     return dbRules.map(rule => {
         const isAllow = rule.action === 'allow';
         return {
-            id: rule.id, // We use the database ID as the Chrome Rule ID to keep them perfectly synced!
-            priority: isAllow ? 2 : 1, // Allow overrides Block
+            id: rule.id, 
+            priority: isAllow ? 2 : 1, 
             action: isAllow 
                 ? { type: "allow" } 
                 : { type: "redirect", redirect: { extensionPath: "/block.html" } },
@@ -63,8 +63,18 @@ async function syncRules() {
         const configRes = await fetch(configUrl);
         const config = await configRes.json();
 
+        // 🛠️ FIX 1: Clean up the URL by stripping trailing slashes
+        const baseUrl = config.workerUrl.endsWith('/') ? config.workerUrl.slice(0, -1) : config.workerUrl;
+
         // Send our current version to the Delta API
-        const response = await fetch(`${config.workerUrl}/api/sync?version=${currentVersion}`);
+        const response = await fetch(`${baseUrl}/api/sync?version=${currentVersion}`);
+        
+        // 🛠️ FIX 2: Check if the server returned an error (like 404 Not Found) before parsing JSON
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server returned ${response.status}: ${errorText}`);
+        }
+
         const result = await response.json();
 
         if (result.status === "up_to_date") {
@@ -90,7 +100,12 @@ async function syncRules() {
             console.log("⚠️ Gap too large. Falling back to full sync...");
             
             // Fetch the entire active ruleset from the Cloudflare KV cache
-            const fullRes = await fetch(`${config.workerUrl}/api/sync/full`);
+            const fullRes = await fetch(`${baseUrl}/api/sync/full`);
+            
+            if (!fullRes.ok) {
+                throw new Error(`Full Sync API failed with status ${fullRes.status}`);
+            }
+            
             const fullResult = await fullRes.json();
 
             if (fullResult.status === "full_success") {
@@ -116,7 +131,7 @@ async function syncRules() {
         }
 
     } catch (err) {
-        console.error("❌ Sync failed. Will retry in 5 minutes.", err);
+        console.error("❌ Sync failed. Will retry in 5 minutes.", err.message);
     }
 }
 
