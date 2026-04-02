@@ -6,7 +6,8 @@
   "permissions": [
     "declarativeNetRequest",
     "storage",
-    "identity"
+    "identity",
+    "alarms"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -16,7 +17,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["block.html"],
+      "resources": ["block.html", "config.json"],
       "matches": ["<all_urls>"]
     }
   ]
