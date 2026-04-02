@@ -25,6 +25,9 @@ document.getElementById('unblockForm').addEventListener('submit', async (e) => {
         const configRes = await fetch(configUrl);
         const config = await configRes.json();
 
+        // 🛠️ THE FIX: Clean up the URL by stripping the trailing slash
+        const baseUrl = config.workerUrl.endsWith('/') ? config.workerUrl.slice(0, -1) : config.workerUrl;
+
         // 2. Get the anonymous student hash from local storage
         const data = await chrome.storage.local.get('studentHash');
         const studentHash = data.studentHash || "unknown_student";
@@ -37,8 +40,8 @@ document.getElementById('unblockForm').addEventListener('submit', async (e) => {
 
         console.log("📤 Preparing to send payload to Cloudflare:", payload);
         
-        // 3. Send the POST request to our Cloudflare backend
-        const response = await fetch(`${config.workerUrl}/api/request`, {
+        // 3. Send the POST request to our Cloudflare backend using baseUrl
+        const response = await fetch(`${baseUrl}/api/request`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
