@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Glassbox",
+  "version": "1.0.0",
+  "description": "Privacy-first, zero-knowledge educational network filter.",
+  "permissions": [
+    "declarativeNetRequest",
+    "storage",
+    "identity"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["block.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
