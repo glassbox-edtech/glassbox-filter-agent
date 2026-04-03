@@ -76,8 +76,8 @@ async function syncRules() {
         // 🛠️ FIX 1: Clean up the URL by stripping trailing slashes
         const baseUrl = config.workerUrl.endsWith('/') ? config.workerUrl.slice(0, -1) : config.workerUrl;
 
-        // Send our current version to the Delta API
-        const response = await fetch(`${baseUrl}/api/sync?version=${currentVersion}`);
+        // Send our current version to the Delta API (Updated Route!)
+        const response = await fetch(`${baseUrl}/api/filter/sync?version=${currentVersion}`);
         
         // 🛠️ FIX 2: Check if the server returned an error (like 404 Not Found) before parsing JSON
         if (!response.ok) {
@@ -109,8 +109,8 @@ async function syncRules() {
         else if (result.status === "full_sync_required") {
             console.log("⚠️ Gap too large. Falling back to full sync...");
             
-            // Fetch the entire active ruleset from the Cloudflare KV cache
-            const fullRes = await fetch(`${baseUrl}/api/sync/full`);
+            // Fetch the entire active ruleset from the Cloudflare KV cache (Updated Route!)
+            const fullRes = await fetch(`${baseUrl}/api/filter/sync/full`);
             
             if (!fullRes.ok) {
                 throw new Error(`Full Sync API failed with status ${fullRes.status}`);

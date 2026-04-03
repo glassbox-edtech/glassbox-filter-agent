@@ -41,7 +41,8 @@ document.getElementById('unblockForm').addEventListener('submit', async (e) => {
         console.log("📤 Preparing to send payload to Cloudflare:", payload);
         
         // 3. Send the POST request to our Cloudflare backend using baseUrl
-        const response = await fetch(`${baseUrl}/api/request`, {
+        // 🛠️ UPDATED ROUTE: Pointing to the new modular Filter API
+        const response = await fetch(`${baseUrl}/api/filter/request`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
