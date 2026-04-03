@@ -36,6 +36,16 @@ chrome.runtime.onInstalled.addListener(async () => {
 function formatDnrRules(dbRules) {
     return dbRules.map(rule => {
         const isAllow = rule.action === 'allow';
+        
+        // 🔄 SCHEMA UPDATE: Translate match_type into DNR syntax
+        // Default (domain/host) uses '^' to anchor the hostname
+        let filterStr = `||${rule.target}^`; 
+        
+        // Path uses '*' to wildcard everything after the specified path
+        if (rule.match_type === 'path') {
+            filterStr = `||${rule.target}*`; 
+        }
+
         return {
             id: rule.id, 
             priority: isAllow ? 2 : 1, 
@@ -43,7 +53,7 @@ function formatDnrRules(dbRules) {
                 ? { type: "allow" } 
                 : { type: "redirect", redirect: { extensionPath: "/block.html" } },
             condition: {
-                urlFilter: `||${rule.domain}^`,
+                urlFilter: filterStr,
                 resourceTypes: ["main_frame", "sub_frame", "script", "xmlhttprequest", "ping"]
             }
         };
