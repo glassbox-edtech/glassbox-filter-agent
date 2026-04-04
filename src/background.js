@@ -37,13 +37,20 @@ function formatDnrRules(dbRules) {
     return dbRules.map(rule => {
         const isAllow = rule.action === 'allow';
         
-        // 🔄 SCHEMA UPDATE: Translate match_type into DNR syntax
-        // Default (domain/host) uses '^' to anchor the hostname
-        let filterStr = `||${rule.target}^`; 
-        
-        // Path uses '*' to wildcard everything after the specified path
-        if (rule.match_type === 'path') {
-            filterStr = `||${rule.target}*`; 
+        // 🔄 SCHEMA UPDATE: Dynamically build the condition based on match_type
+        let condition = {
+            resourceTypes: ["main_frame", "sub_frame", "script", "xmlhttprequest", "ping"]
+        };
+
+        if (rule.match_type === 'regex') {
+            // 🛡️ ADVANCED REGEX BLOCKING
+            condition.regexFilter = rule.target;
+        } else if (rule.match_type === 'path') {
+            // Path uses '*' to wildcard everything after the specified path
+            condition.urlFilter = `||${rule.target}*`; 
+        } else {
+            // Default (domain/host) uses '^' to anchor the hostname
+            condition.urlFilter = `||${rule.target}^`; 
         }
 
         return {
@@ -52,10 +59,7 @@ function formatDnrRules(dbRules) {
             action: isAllow 
                 ? { type: "allow" } 
                 : { type: "redirect", redirect: { extensionPath: "/block.html" } },
-            condition: {
-                urlFilter: filterStr,
-                resourceTypes: ["main_frame", "sub_frame", "script", "xmlhttprequest", "ping"]
-            }
+            condition: condition
         };
     });
 }
