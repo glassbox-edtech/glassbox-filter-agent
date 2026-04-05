@@ -37,6 +37,17 @@ function formatDnrRules(dbRules) {
     return dbRules.map(rule => {
         const isAllow = rule.action === 'allow';
         
+        // 🎯 PRIORITY HIERARCHY FIX
+        // Base Priorities: Domain Block = 10, Domain Allow = 20
+        let calculatedPriority = isAllow ? 20 : 10;
+        
+        // Specificity Modifiers: Paths logically outrank Domains
+        if (rule.match_type === 'path') {
+            calculatedPriority += 20; // Path Block = 30, Path Allow = 40
+        } else if (rule.match_type === 'regex') {
+            calculatedPriority += 40; // Regex Block = 50, Regex Allow = 60
+        }
+        
         // 🔄 SCHEMA UPDATE: Dynamically build the condition based on match_type
         let condition = {
             resourceTypes: ["main_frame", "sub_frame", "script", "xmlhttprequest", "ping"]
@@ -55,7 +66,7 @@ function formatDnrRules(dbRules) {
 
         return {
             id: rule.id, 
-            priority: isAllow ? 2 : 1, 
+            priority: calculatedPriority, 
             action: isAllow 
                 ? { type: "allow" } 
                 : { type: "redirect", redirect: { extensionPath: "/block.html" } },
@@ -77,13 +88,13 @@ async function syncRules() {
         const configRes = await fetch(configUrl);
         const config = await configRes.json();
 
-        // 🛠️ FIX 1: Clean up the URL by stripping trailing slashes
+        // Clean up the URL by stripping trailing slashes
         const baseUrl = config.workerUrl.endsWith('/') ? config.workerUrl.slice(0, -1) : config.workerUrl;
 
-        // Send our current version to the Delta API (Updated Route!)
+        // Send our current version to the Delta API
         const response = await fetch(`${baseUrl}/api/filter/sync?version=${currentVersion}`);
         
-        // 🛠️ FIX 2: Check if the server returned an error (like 404 Not Found) before parsing JSON
+        // Check if the server returned an error (like 404 Not Found) before parsing JSON
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`Server returned ${response.status}: ${errorText}`);
@@ -113,7 +124,7 @@ async function syncRules() {
         else if (result.status === "full_sync_required") {
             console.log("⚠️ Gap too large. Falling back to full sync...");
             
-            // Fetch the entire active ruleset from the Cloudflare KV cache (Updated Route!)
+            // Fetch the entire active ruleset from the Cloudflare KV cache
             const fullRes = await fetch(`${baseUrl}/api/filter/sync/full`);
             
             if (!fullRes.ok) {
