@@ -69,7 +69,13 @@ function formatDnrRules(dbRules) {
             priority: calculatedPriority, 
             action: isAllow 
                 ? { type: "allow" } 
-                : { type: "redirect", redirect: { extensionPath: "/block.html" } },
+                : { 
+                    type: "redirect", 
+                    redirect: { 
+                        // Dynamically append the URI encoded target so block.html can pre-fill the form
+                        extensionPath: `/block.html?url=${encodeURIComponent(rule.target)}` 
+                    } 
+                },
             condition: condition
         };
     });
