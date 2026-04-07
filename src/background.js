@@ -172,3 +172,13 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         syncRules();
     }
 });
+
+// ==========================================
+// 🧪 TESTING EXPORTS
+// ==========================================
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        formatDnrRules,
+        syncRules
+    };
+}
