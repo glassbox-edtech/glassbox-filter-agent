@@ -5,28 +5,201 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Access Restricted - Glassbox</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f3f4f6; margin: 0; }
-        .container { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 450px; width: 100%; text-align: center; }
-        h1 { color: #dc2626; margin-top: 0; font-size: 1.5rem; }
-        p { color: #4b5563; font-size: 0.95rem; line-height: 1.5; }
-        input, textarea, button { width: 100%; margin-top: 1rem; padding: 0.75rem; border-radius: 6px; border: 1px solid #d1d5db; box-sizing: border-box; font-family: inherit; }
-        button { background-color: #2563eb; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 1.5rem; }
-        button:hover { background-color: #1d4ed8; }
-        .success { color: #059669; display: none; margin-top: 1.5rem; font-weight: bold; background: #d1fae5; padding: 1rem; border-radius: 6px; }
+        /* Modern CSS Variables for Light/Dark Mode */
+        :root {
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --success: #059669;
+            --success-bg: #d1fae5;
+            --input-bg: #ffffff;
+            --input-border: #d1d5db;
+            --focus-ring: rgba(37, 99, 235, 0.2);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #0f172a;
+                --card-bg: #1e293b;
+                --text-main: #f8fafc;
+                --text-muted: #94a3b8;
+                --border-color: #334155;
+                --primary: #3b82f6;
+                --primary-hover: #60a5fa;
+                --danger: #ef4444;
+                --danger-bg: #450a0a;
+                --success: #10b981;
+                --success-bg: #064e3b;
+                --input-bg: #0f172a;
+                --input-border: #475569;
+                --focus-ring: rgba(59, 130, 246, 0.25);
+            }
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            background-color: var(--bg-color); 
+            color: var(--text-main);
+            margin: 0; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container { 
+            background: var(--card-bg); 
+            padding: 3rem 2.5rem; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1); 
+            max-width: 450px; 
+            width: 90%; 
+            text-align: center; 
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .icon-wrapper {
+            font-size: 3.5rem;
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        h1 { 
+            color: var(--danger); 
+            margin-top: 0; 
+            font-size: 1.5rem; 
+            font-weight: 700;
+        }
+
+        p { 
+            color: var(--text-muted); 
+            font-size: 0.95rem; 
+            line-height: 1.5; 
+            margin-bottom: 2rem;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            text-align: left;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: -0.5rem;
+        }
+
+        input, textarea { 
+            width: 100%; 
+            padding: 0.85rem; 
+            border-radius: 8px; 
+            border: 1px solid var(--input-border); 
+            background-color: var(--input-bg);
+            color: var(--text-main);
+            box-sizing: border-box; 
+            font-family: inherit; 
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--focus-ring);
+        }
+
+        input:disabled, textarea:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        button { 
+            background-color: var(--primary); 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 1rem;
+            padding: 0.85rem;
+            border-radius: 8px;
+            margin-top: 1rem; 
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        button:hover:not(:disabled) { 
+            background-color: var(--primary-hover); 
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .status-message { 
+            display: none; 
+            margin-top: 1.5rem; 
+            font-weight: 600; 
+            padding: 1rem; 
+            border-radius: 8px; 
+            line-height: 1.4;
+            font-size: 0.95rem;
+        }
+
+        .success { 
+            color: var(--success); 
+            background: var(--success-bg); 
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .error {
+            color: var(--danger);
+            background: var(--danger-bg);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .footer-note {
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🛡️ Access Restricted</h1>
-        <p>This website has been blocked by your school's network policy.</p>
+        <div class="icon-wrapper">🛡️</div>
+        <h1>Access Restricted</h1>
+        <p>This website has been blocked by your school's network policy to ensure a safe learning environment.</p>
         
         <form id="unblockForm">
-            <input type="text" id="urlInput" placeholder="URL you were trying to visit (e.g., badsite.test)" required>
-            <textarea id="reasonInput" rows="3" placeholder="Why do you need this site for your academic work?" required></textarea>
-            <button type="submit">Submit Unblock Request</button>
+            <label for="urlInput">Requested URL</label>
+            <input type="text" id="urlInput" placeholder="e.g., example.com" required readonly>
+            
+            <label for="reasonInput">Academic Justification</label>
+            <textarea id="reasonInput" rows="3" placeholder="Why do you need access to this site for your coursework?" required></textarea>
+            
+            <button type="submit" id="submitBtn">Submit Unblock Request</button>
         </form>
         
-        <div id="statusMessage" class="success">✅ Request securely submitted to IT!</div>
+        <div id="statusMessage" class="status-message"></div>
+
+        <div class="footer-note">
+            Protected by Glassbox • CIPA Compliant Network Filter
+        </div>
     </div>
 
     <script src="block.js"></script>

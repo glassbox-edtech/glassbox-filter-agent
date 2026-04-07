@@ -13,11 +13,15 @@ document.getElementById('unblockForm').addEventListener('submit', async (e) => {
     
     const url = document.getElementById('urlInput').value;
     const reason = document.getElementById('reasonInput').value;
-    const submitButton = document.querySelector('button[type="submit"]');
+    const submitButton = document.getElementById('submitBtn');
+    const reasonInput = document.getElementById('reasonInput');
+    const statusMsg = document.getElementById('statusMessage');
     
-    // Disable the button to prevent duplicate submissions
+    // UI Update: Disable the button and input to prevent duplicate submissions
     submitButton.disabled = true;
-    submitButton.textContent = "Submitting...";
+    reasonInput.disabled = true;
+    submitButton.textContent = "Submitting securely...";
+    statusMsg.style.display = 'none'; // Hide any previous error messages
     
     try {
         // 1. Fetch central config for the dynamic URL using Chrome's API
@@ -25,7 +29,7 @@ document.getElementById('unblockForm').addEventListener('submit', async (e) => {
         const configRes = await fetch(configUrl);
         const config = await configRes.json();
 
-        // 🛠️ THE FIX: Clean up the URL by stripping the trailing slash
+        // Clean up the URL by stripping the trailing slash
         const baseUrl = config.workerUrl.endsWith('/') ? config.workerUrl.slice(0, -1) : config.workerUrl;
 
         // 2. Get the anonymous student hash from local storage
@@ -40,8 +44,7 @@ document.getElementById('unblockForm').addEventListener('submit', async (e) => {
 
         console.log("📤 Preparing to send payload to Cloudflare:", payload);
         
-        // 3. Send the POST request to our Cloudflare backend using baseUrl
-        // 🛠️ UPDATED ROUTE: Pointing to the new modular Filter API
+        // 3. Send the POST request to our Cloudflare backend
         const response = await fetch(`${baseUrl}/api/filter/request`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -49,26 +52,25 @@ document.getElementById('unblockForm').addEventListener('submit', async (e) => {
         });
 
         if (response.ok) {
-            // Success! Hide the form and show the success message
+            // Success! Hide the form completely and show the success message
             document.getElementById('unblockForm').style.display = 'none';
-            const statusMsg = document.getElementById('statusMessage');
             statusMsg.style.display = 'block';
-            statusMsg.textContent = "✅ Request securely submitted to IT!";
-            statusMsg.className = "success"; 
+            statusMsg.textContent = "✅ Request securely submitted to IT! You may close this tab.";
+            statusMsg.className = "status-message success"; 
         } else {
             throw new Error(`Server returned status: ${response.status}`);
         }
     } catch (error) {
         console.error("Fetch failed:", error);
         
-        // Let the user try again if it failed
-        const statusMsg = document.getElementById('statusMessage');
+        // Error Recovery: Let the user try again
         statusMsg.style.display = 'block';
-        statusMsg.textContent = "❌ Failed to submit request. Please check your connection.";
-        statusMsg.style.color = "#dc2626";
-        statusMsg.style.backgroundColor = "#fee2e2";
+        statusMsg.textContent = "❌ Failed to submit request. Please check your network connection and try again.";
+        statusMsg.className = "status-message error";
         
+        // Re-enable the inputs
         submitButton.disabled = false;
+        reasonInput.disabled = false;
         submitButton.textContent = "Submit Unblock Request";
     }
 });
