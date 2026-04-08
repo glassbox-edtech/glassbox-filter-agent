@@ -78,6 +78,7 @@ jobs:
       - name: Publish GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP_ID: ${{ secrets.EXTENSION_ID }}
         run: |
           echo "Publishing release..."
           
@@ -89,6 +90,8 @@ jobs:
           
           # Safely construct multi-line release notes to fix formatting
           NOTES="Automated release of the Glassbox extension.
+          
+          **Extension ID:** \`${APP_ID}\`
           
           **Install URL for Google Workspace:** \`https://github.com/${{ github.repository }}/releases/latest/download/update.xml\`"
           
