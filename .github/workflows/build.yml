@@ -87,7 +87,12 @@ jobs:
             RELEASE_TAG="v${{ env.EXT_VERSION }}-manual-$(date +'%s')"
           fi
           
+          # Safely construct multi-line release notes to fix formatting
+          NOTES="Automated release of the Glassbox extension.
+          
+          **Install URL for Google Workspace:** \`https://github.com/${{ github.repository }}/releases/latest/download/update.xml\`"
+          
           # Create the release and upload the two critical files
           gh release create "$RELEASE_TAG" glassbox.crx update.xml \
             --title "Extension Build: $RELEASE_TAG" \
-            --notes "Automated release of the Glassbox extension. \n\n**Install URL for Google Workspace:** \n\`https://github.com/${{ github.repository }}/releases/latest/download/update.xml\`"
+            --notes "$NOTES"
