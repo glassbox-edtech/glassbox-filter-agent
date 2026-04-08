@@ -1,0 +1,93 @@
+name: Build and Release Chrome Extension
+
+on:
+  push:
+    tags:
+      - 'v*' # Automatically triggers when you push a tag like 'v1.0.2'
+  workflow_dispatch: # Allows you to trigger it manually via the GitHub UI
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required for the bot to create a Release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (For CRX packager)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install crx3
+        run: npm install -g crx3
+
+      - name: Prepare Extension Directory
+        run: |
+          echo "Preparing files for packaging..."
+          
+          # Copy the AGPL License into the src/ directory so it is included in the CRX
+          if [ -f "LICENSE" ]; then
+            cp LICENSE src/LICENSE
+            echo "Successfully copied LICENSE to src/"
+          else
+            echo "Warning: No LICENSE file found in root directory!"
+          fi
+          
+          # Extract the version number directly from src/manifest.json using jq
+          VERSION=$(jq -r '.version' src/manifest.json)
+          echo "EXT_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Detected version: $VERSION"
+
+      - name: Package CRX File
+        env:
+          # The private key must be stored in repo Settings > Secrets and variables > Actions
+          PRIVATE_KEY: ${{ secrets.CRX_PRIVATE_KEY }}
+        run: |
+          echo "Packaging extension..."
+          
+          # Temporarily write the private key to a file for crx3 to use
+          echo "$PRIVATE_KEY" > temp_key.pem
+          
+          # Pack the src/ directory into glassbox.crx
+          crx3 -p temp_key.pem -o glassbox.crx src/
+          
+          # Securely delete the private key immediately after packing
+          rm temp_key.pem
+
+      - name: Generate update.xml
+        env:
+          # The App ID must be stored in repo Settings > Secrets and variables > Actions
+          APP_ID: ${{ secrets.EXTENSION_ID }}
+          REPO: ${{ github.repository }} # Automatically grabs 'YOUR_ORG/glassbox-filter-agent'
+        run: |
+          echo "Generating update.xml manifest..."
+          
+          # Create the XML file with dynamic variables
+          cat <<EOF > update.xml
+          <?xml version='1.0' encoding='UTF-8'?>
+          <gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>
+            <app appid='$APP_ID'>
+              <updatecheck codebase='https://github.com/$REPO/releases/latest/download/glassbox.crx' version='${{ env.EXT_VERSION }}' />
+            </app>
+          </gupdate>
+          EOF
+
+      - name: Publish GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Publishing release..."
+          
+          # Generate a dynamic release tag if triggered manually, otherwise use the git tag
+          RELEASE_TAG="${GITHUB_REF_NAME}"
+          if [ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]; then
+            RELEASE_TAG="v${{ env.EXT_VERSION }}-manual-$(date +'%s')"
+          fi
+          
+          # Create the release and upload the two critical files
+          gh release create "$RELEASE_TAG" glassbox.crx update.xml \
+            --title "Extension Build: $RELEASE_TAG" \
+            --notes "Automated release of the Glassbox extension. \n\n**Install URL for Google Workspace:** \n\`https://github.com/${{ github.repository }}/releases/latest/download/update.xml\`"
