@@ -1,3 +1,35 @@
+// ==========================================
+// 🤝 THE STARTUP HANDSHAKE
+// ==========================================
+async function performHandshake(studentHash) {
+    try {
+        const configUrl = chrome.runtime.getURL("config.json");
+        const config = await (await fetch(configUrl)).json();
+        const baseUrl = config.workerUrl.endsWith('/') ? config.workerUrl.slice(0, -1) : config.workerUrl;
+
+        const res = await fetch(`${baseUrl}/api/student/me?hash=${studentHash}`);
+        
+        if (res.status === 404) {
+            console.log("⚠️ Student not registered. Opening setup page...");
+            // Open the setup.html page so the student can select their school
+            chrome.tabs.create({ url: chrome.runtime.getURL("setup.html") });
+            return false;
+        } else if (res.ok) {
+            const data = await res.json();
+            // Lock the school ID locally for fast retrieval during syncs
+            await chrome.storage.local.set({ schoolId: data.schoolId });
+            console.log(`✅ Student securely locked to school ID: ${data.schoolId}`);
+            return true;
+        }
+    } catch (err) {
+        console.error("Handshake failed (offline?).", err);
+        return false;
+    }
+}
+
+// ==========================================
+// 🚀 INITIALIZATION & SETUP
+// ==========================================
 chrome.runtime.onInstalled.addListener(async () => {
     console.log("Glassbox Installed. Initializing Engine...");
 
@@ -24,11 +56,26 @@ chrome.runtime.onInstalled.addListener(async () => {
         
         console.log("✅ Student ID securely hashed and stored:", studentHash);
         
-        // 3. Trigger an immediate sync right after installation
-        syncRules();
+        // 3. Perform Handshake & Sync
+        const isRegistered = await performHandshake(studentHash);
+        if (isRegistered) {
+            syncRules();
+        }
         
     } catch (error) {
         console.error("❌ Failed to hash identity:", error);
+    }
+});
+
+// Run handshake every time Chrome starts up
+chrome.runtime.onStartup.addListener(async () => {
+    console.log("🚀 Chrome started. Performing security handshake...");
+    const data = await chrome.storage.local.get('studentHash');
+    if (data.studentHash) {
+        const isRegistered = await performHandshake(data.studentHash);
+        if (isRegistered) {
+            syncRules();
+        }
     }
 });
 
@@ -85,8 +132,10 @@ function formatDnrRules(dbRules) {
 async function syncRules() {
     console.log("🔄 Polling Cloudflare for rule updates...");
     
-    const data = await chrome.storage.local.get('localVersion');
+    // 🎯 FIX: Retrieve the locked schoolId from local storage
+    const data = await chrome.storage.local.get(['localVersion', 'schoolId']);
     const currentVersion = data.localVersion || 0;
+    const schoolId = data.schoolId || 1; // Default to 1 (DEFAULT school)
 
     try {
         // Fetch the central config file to get the dynamic URL
@@ -97,8 +146,8 @@ async function syncRules() {
         // Clean up the URL by stripping trailing slashes
         const baseUrl = config.workerUrl.endsWith('/') ? config.workerUrl.slice(0, -1) : config.workerUrl;
 
-        // Send our current version to the Delta API
-        const response = await fetch(`${baseUrl}/api/filter/sync?version=${currentVersion}`);
+        // 🎯 FIX: Append schoolId to the polling URL
+        const response = await fetch(`${baseUrl}/api/filter/sync?version=${currentVersion}&schoolId=${schoolId}`);
         
         // Check if the server returned an error (like 404 Not Found) before parsing JSON
         if (!response.ok) {
@@ -130,8 +179,8 @@ async function syncRules() {
         else if (result.status === "full_sync_required") {
             console.log("⚠️ Gap too large. Falling back to full sync...");
             
-            // Fetch the entire active ruleset from the Cloudflare KV cache
-            const fullRes = await fetch(`${baseUrl}/api/filter/sync/full`);
+            // 🎯 FIX: Append schoolId to the fallback fetch URL
+            const fullRes = await fetch(`${baseUrl}/api/filter/sync/full?schoolId=${schoolId}`);
             
             if (!fullRes.ok) {
                 throw new Error(`Full Sync API failed with status ${fullRes.status}`);
