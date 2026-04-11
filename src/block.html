@@ -150,6 +150,17 @@
             cursor: not-allowed;
         }
 
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--input-border);
+            margin-top: 0.5rem;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: var(--bg-color);
+        }
+
         .status-message { 
             display: none; 
             margin-top: 1.5rem; 
@@ -193,6 +204,7 @@
             <textarea id="reasonInput" rows="3" placeholder="Why do you need access to this site for your coursework?" required></textarea>
             
             <button type="submit" id="submitBtn">Submit Unblock Request</button>
+            <button type="button" id="syncBtn" class="btn-secondary">Check for Approval (Sync Now)</button>
         </form>
         
         <div id="statusMessage" class="status-message"></div>

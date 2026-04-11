@@ -74,3 +74,35 @@ document.getElementById('unblockForm').addEventListener('submit', async (e) => {
         submitButton.textContent = "Submit Unblock Request";
     }
 });
+
+// 🎯 NEW: Force Sync Logic
+document.getElementById('syncBtn').addEventListener('click', () => {
+    const syncBtn = document.getElementById('syncBtn');
+    const targetUrl = document.getElementById('urlInput').value;
+    
+    syncBtn.disabled = true;
+    syncBtn.textContent = "Syncing with IT...";
+    
+    // Message the background.js service worker to trigger the manual Cloudflare sync
+    chrome.runtime.sendMessage({ action: "force_sync" }, (response) => {
+        if (response && response.success) {
+            syncBtn.textContent = "✅ Synced! Redirecting...";
+            
+            // Give Chrome's Declarative Net Request engine 1.5 seconds to compile and apply the new rules
+            setTimeout(() => {
+                if (targetUrl) {
+                    // Force the browser to attempt navigating to the original URL again!
+                    window.location.href = targetUrl;
+                } else {
+                    window.location.reload();
+                }
+            }, 1500);
+        } else {
+            syncBtn.textContent = "❌ Sync failed. Check connection.";
+            setTimeout(() => {
+                syncBtn.disabled = false;
+                syncBtn.textContent = "Check for Approval (Sync Now)";
+            }, 3000);
+        }
+    });
+});
