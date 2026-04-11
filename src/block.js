@@ -91,8 +91,12 @@ document.getElementById('syncBtn').addEventListener('click', () => {
             // Give Chrome's Declarative Net Request engine 1.5 seconds to compile and apply the new rules
             setTimeout(() => {
                 if (targetUrl) {
-                    // Force the browser to attempt navigating to the original URL again!
-                    window.location.href = targetUrl;
+                    // 🎯 FIX: Ensure the URL has a protocol so Chrome doesn't treat it as a relative extension path
+                    let finalUrl = targetUrl;
+                    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+                        finalUrl = 'https://' + finalUrl;
+                    }
+                    window.location.href = finalUrl;
                 } else {
                     window.location.reload();
                 }
